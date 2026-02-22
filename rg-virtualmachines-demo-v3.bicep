@@ -1,30 +1,23 @@
-@description('Locatie van de RG wordt overgenomen.')
-param location string = resourceGroup().location
+// Roept de main.bicep module aan
 
-@description('De naam van de VM')
-param virtualMachineName string = 'vm-windowsserver-demo'
+param location string
 
-@description('De naam van de VNET')
-param vNetName string = 'vnet-westeurope'
+param virtualMachineName string
 
-@description('De naam van de subnet')
-param subnetName string = 'Default'
-
-@description('De naam van de tweede subnet')
-param subnetName2 string = 'Subnet2'
-
-@description('Adresprefix van de tweede subnet')
-param subnetAddressPrefix2 string = '172.16.1.0/24'
-
-@description('De admin gebruikersnaam voor de VM')
-param adminUsername string = 'Dewi'
-
-@description('Het wachtwoord voor de admin gebruiker van de VM')
 @secure()
 param adminPassword string
-@description('NSG groep voor de VM')
 
-resource nsg 'Microsoft.Network/networkSecurityGroups@2020-11-01' = {
+param vNetName string = 'vnet-westeurope'
+
+param subnet1Name string = 'Default'
+param subnet1Prefix string = '172.16.0.0/24'
+
+param subnet2Name string = 'Subnet2'
+param subnet2Prefix string = '172.16.1.0/24'
+
+param adminUsername string = 'Dewi'
+
+resource nsg 'Microsoft.Network/networkSecurityGroups@2024-03-01' = {
   name: '${virtualMachineName}-nsg'
   location: location
   properties: {
@@ -46,37 +39,36 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2020-11-01' = {
   }
 }
 
-@description('VNet met subnet')
-resource vnet 'Microsoft.Network/virtualNetworks@2025-05-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
   name: vNetName
   location: location
   properties: {
     addressSpace: {
       addressPrefixes: [
-        '172.16.0.0/16']
-      }
-      subnets: [
-        {
-          name: subnetName
-          properties: {
-            addressPrefix: '172.16.0.0/24'
-            networkSecurityGroup: {
-              id: nsg.id
-            }
-            }
-        }
-        {
-          name: subnetName2
-          properties: {
-            addressPrefix: subnetAddressPrefix2
+        '172.16.0.0/16'
+      ]
+    }
+    subnets: [
+      {
+        name: subnet1Name
+        properties: {
+          addressPrefix: subnet1Prefix
+          networkSecurityGroup: {
+            id: nsg.id
           }
         }
-        ]
-    }
+      }
+      {
+        name: subnet2Name
+        properties: {
+          addressPrefix: subnet2Prefix
+        }
+      }
+    ]
+  }
 }
 
-@description('Publiek IP adres voor de VM')
-resource publicIP 'Microsoft.Network/publicIPAddresses@2025-05-01' = {
+resource publicIP 'Microsoft.Network/publicIPAddresses@2024-03-01' = {
   name: '${virtualMachineName}-publicip'
   location: location
   sku: {
@@ -87,14 +79,13 @@ resource publicIP 'Microsoft.Network/publicIPAddresses@2025-05-01' = {
   }
 }
 
-@description('Netwerk interface voor de VM')
-resource networkInterface 'Microsoft.Network/networkInterfaces@2025-05-01' = {
+resource networkInterface 'Microsoft.Network/networkInterfaces@2024-03-01' = {
   name: '${virtualMachineName}-nic'
   location: location
   properties: {
     ipConfigurations: [
       {
-        name: '${virtualMachineName}-ipconfig'
+        name: 'ipconfig1'
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           subnet: {
@@ -109,7 +100,6 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2025-05-01' = {
   }
 }
 
-@description('De Virtual Machine configuratie')
 resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
   name: virtualMachineName
   location: location
@@ -153,7 +143,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
   }
 }
 
-@description('Automatisch afsluiten om 19:00 om kosten te besparen')
 resource shutdownSchedule 'microsoft.devtestlab/schedules@2018-09-15' = {
   name: 'shutdown-computevm-${virtualMachineName}'
   location: location
@@ -167,7 +156,7 @@ resource shutdownSchedule 'microsoft.devtestlab/schedules@2018-09-15' = {
     targetResourceId: vm.id
     notificationSettings: {
       status: 'Enabled'
-      emailRecipient: 'asmawidjaja.d@hsleiden.nl' 
+      emailRecipient: 'asmawidjaja.d@hsleiden.nl'
     }
   }
 }
